@@ -1,21 +1,20 @@
-
-ALGORITMO IDA_STAR(inicio, objetivo)
-    // 1. Inicialización de estadísticas y cálculo de cota inicial
+ALGORITMO IDA_STAR(inicio, meta)
+    // 1. Inicialización
     nodos_expandidos = 0
-    limite_tiempo = max_time
+    profundidad_maxima = 0
     
-    // El threshold inicial es puramente la heurística del nodo raíz
-    threshold = heuristica(inicio, objetivo)
+    // El umbral (threshold) inicial es la heurística del nodo raíz
+    threshold = heuristica(inicio, meta)
     
     // 2. Bucle principal de Profundización Iterativa (Iterative Deepening)
     MIENTRAS VERDADERO HACER
         
-        // Estructuras para el camino actual y evitar ciclos en la misma rama DFS
+        // Estructuras para el camino actual y evitar ciclos (conjunto de visitados)
         camino = [inicio]
         visitados = CONJUNTO_CONTIENE(inicio)
         
         // 3. Llamada a la Búsqueda en Profundidad (DFS) acotada
-        resultado, nuevo_threshold = DFS_ACOTADO(camino, 0, threshold, visitados, objetivo)
+        resultado, nuevo_threshold = DFS_ACOTADO(camino, 0, threshold, visitados, meta)
         
         // 4. Analizar respuesta de DFS
         SI resultado NO ES NULO ENTONCES
@@ -25,7 +24,12 @@ ALGORITMO IDA_STAR(inicio, objetivo)
         FIN SI
         
         SI nuevo_threshold == INFINITO ENTONCES
-            // No hay más nodos por explorar o se agotó el tiempo
+            // No hay más nodos por explorar
+            RETORNAR NULO
+        FIN SI
+        
+        SI TIEMPO_EXCEDIDO() ENTONCES
+            // Límite de tiempo agotado
             RETORNAR NULO
         FIN SI
         
@@ -36,31 +40,31 @@ ALGORITMO IDA_STAR(inicio, objetivo)
 FIN ALGORITMO
 
 
-ALGORITMO DFS_ACOTADO(camino, g, threshold, visitados, objetivo)
+ALGORITMO DFS_ACOTADO(camino, g, threshold, visitados, meta)
     nodo_actual = OBTENER_ULTIMO(camino)
     
     // f(n) = g(n) + h(n)
-    f = g + heuristica(nodo_actual, objetivo)
+    f = g + heuristica(nodo_actual, meta)
     nodos_expandidos = nodos_expandidos + 1
     
-    // Podar rama si excede el umbral actual
+    // Podar rama si excede el umbral actual (horizonte limitado)
     SI f > threshold ENTONCES
         RETORNAR NULO, f
     FIN SI
     
     // Si es el nodo meta, retornar el camino y el threshold con el que se encontró
-    SI nodo_actual == objetivo ENTONCES
+    SI nodo_actual == meta ENTONCES
         RETORNAR camino, threshold
     FIN SI
     
     // Para rastrear el mínimo costo de los nodos podados
     min_threshold = INFINITO
     
-    // 1. Expandir nodo actual
+    // 1. Generar hijos
     sucesores = GENERAR_HIJOS(nodo_actual)
     
-    // 2. Ordenamiento opcional por heurística (favorece caminos más prometedores primero)
-    ORDENAR sucesores POR heuristica(hijo, objetivo) ASCENDENTE
+    // 2. Ordenamiento por heurística (favorece caminos más prometedores primero para acelerar la búsqueda)
+    ORDENAR sucesores POR heuristica(hijo, meta) ASCENDENTE
     
     // 3. Explorar hijos recursivamente
     PARA CADA hijo EN sucesores HACER
@@ -71,7 +75,7 @@ ALGORITMO DFS_ACOTADO(camino, g, threshold, visitados, objetivo)
             camino.AGREGAR(hijo)
             
             // Llamada recursiva incrementando el costo (g+1)
-            resultado, t = DFS_ACOTADO(camino, g + 1, threshold, visitados, objetivo)
+            resultado, t = DFS_ACOTADO(camino, g + 1, threshold, visitados, meta)
             
             SI resultado NO ES NULO ENTONCES
                 // Meta encontrada en esta rama, propagar hacia arriba
@@ -86,6 +90,10 @@ ALGORITMO DFS_ACOTADO(camino, g, threshold, visitados, objetivo)
             // Backtracking: deshacer cambios para explorar el siguiente hermano
             camino.ELIMINAR_ULTIMO()
             visitados.REMOVER(hijo)
+        FIN SI
+        
+        SI TIEMPO_EXCEDIDO() ENTONCES
+            RETORNAR NULO, INFINITO
         FIN SI
         
     FIN PARA

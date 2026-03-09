@@ -13,38 +13,30 @@ The system includes:
 
 ---
 
-##Project Structure
+## Project Structure
 ida_project/
 │
 ├── src/                               # Código fuente principal
 │   ├── __init__.py
-│   ├── main.py                         # Punto de entrada (Preguntas 1 y 2)
-│   ├── config.py                       # Parámetros globales (heurística, límites, etc.)
+│   ├── main.py                        # Punto de entrada y prueba unitaria principal
 │   │
-│   ├── core/                           # Lógica principal del algoritmo
+│   ├── core/                          # Lógica principal del algoritmo
 │   │   ├── __init__.py
-│   │   ├── ida_star.py                 # Implementación IDA*
-│   │   ├── board.py                    # Representación del tablero
-│   │   └── heuristics.py               # Funciones heurísticas
+│   │   ├── ida_star.py                # Implementación central del IDA* y sus matemáticas
+│   │   ├── board.py                   # Lógica Inmutable de representación del Tablero
+│   │   └── heuristics.py              # Diccionario y 5 funciones de costo heurístico
 │   │
-│   ├── io/                             # Entrada / salida
-│   │   ├── __init__.py
-│   │   └── io_handler.py               # Lectura de archivos y formato salida
-│   │
-│   └── utils.py                        # Funciones auxiliares generales
+│   └── io/                            # Interface e I/O de archivos
+│       ├── __init__.py
+│       └── io_handler.py              # Parsing y decodificación
 │
-├── experiments/                        # Análisis empírico (Pregunta 5)
+├── experiments/                       # Componentes de batching para Análisis Empírico
 │   ├── __init__.py
-│   ├── generator.py                    # Generación de instancias (10,20,50 movs)
-│   ├── runner.py                       # Ejecuta experimentos masivos
-│   ├── metrics.py                      # Estadísticas
-│   └── run_all.py                      # Script maestro para ejecutar todo
+│   ├── generator.py                   # Generación de M*N archivos revolviendo el estado meta
+│   └── runner.py                      # Ejecución automatizada de lotes con exportación `.csv`
 │
 ├── data/
-│   ├── input/                          # Archivos manuales (para main)
-│   │   └── ejemplo.txt
-│   │
-│   ├── instances/                      # Instancias generadas
+│   ├── instances/                     # Directorios de instanciación aleatoria del generator
 │   │   ├── 4x4/
 │   │   ├── 5x5/
 │   │   ├── 6x6/
@@ -52,11 +44,10 @@ ida_project/
 │   │   └── 8x8/
 │   │
 │   └── results/
-│       ├── raw/                        # Datos crudos CSV
-│       ├── processed/                  # Datos agregados
-│       └── plots/                      # Gráficas generadas
+│       └── raw/                       # Bases de datos CSV con los resultados del Runner
 │
-├── requirements.txt
+├── documentation/
+│   └── PSEUDOCODIGO_IDA_STAR.txt      # Traducción requerida del pseudocódigo inicial
+│
 ├── README.md
-└── documentation/
-    └── respuestas_examen.pdf
+└── requirements.txt

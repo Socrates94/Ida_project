@@ -52,7 +52,7 @@ class ExperimentAnalyzer:
 
     def generar_grafica_tiempos(self):
         """
-        Gráfica 1: Tiempo de ejecución vs Tamaño del tablero
+        Grafica 1: Tiempo de ejecución vs Tamaño del tablero
         Separado por dificultad.
         """
         plt.figure(figsize=(14, 8))
@@ -69,32 +69,32 @@ class ExperimentAnalyzer:
             palette='Set2'
         )
 
-        plt.title('Tiempo de Ejecución vs Tamaño del Tablero', fontsize=16, fontweight='bold')
-        plt.xlabel('Tamaño del Tablero (n x n)', fontsize=12)
-        plt.ylabel('Tiempo de Ejecución (segundos)', fontsize=12)
+        plt.title('Tiempo de Ejecucion vs Tamano del Tablero', fontsize=16, fontweight='bold')
+        plt.xlabel('Tamano del Tablero (n x n)', fontsize=12)
+        plt.ylabel('Tiempo de Ejecucion (segundos)', fontsize=12)
         plt.legend(title='Dificultad')
-        plt.yscale('log')  # Escala logarítmica para mejor visualización
+        plt.yscale('log')  # Escala logaritmica para mejor visualizacion
         plt.grid(True, alpha=0.3)
 
         # Guardar
         output_path = os.path.join(self.output_dir, 'tiempos_por_tamano.png')
         plt.savefig(output_path, dpi=300, bbox_inches='tight')
         plt.show()
-        print(f"✅ Gráfica guardada: {output_path}")
+        print(f"Grafica guardada: {output_path}")
 
         return output_path
 
     def generar_grafica_exito(self):
         """
-        Gráfica 2: Porcentaje de éxito por tamaño y dificultad
+        Grafica 2: Porcentaje de exito por tamaño y dificultad
         """
         plt.figure(figsize=(14, 8))
 
-        # Calcular tasa de éxito por grupo
+        # Calcular tasa de exito por grupo
         exito_por_grupo = self.df.groupby(['tamano', 'dificultad'])['exito'].agg(['mean', 'count']).reset_index()
         exito_por_grupo['tasa_exito'] = exito_por_grupo['mean'] * 100
 
-        # Gráfica de barras
+        # Grafica de barras
         g = sns.barplot(
             data=exito_por_grupo,
             x='tamano',
@@ -103,9 +103,9 @@ class ExperimentAnalyzer:
             palette='Set2'
         )
 
-        plt.title('Tasa de Éxito por Tamaño y Dificultad', fontsize=16, fontweight='bold')
-        plt.xlabel('Tamaño del Tablero (n x n)', fontsize=12)
-        plt.ylabel('Tasa de Éxito (%)', fontsize=12)
+        plt.title('Tasa de Exito por Tamano y Dificultad', fontsize=16, fontweight='bold')
+        plt.xlabel('Tamano del Tablero (n x n)', fontsize=12)
+        plt.ylabel('Tasa de Exito (%)', fontsize=12)
         plt.legend(title='Dificultad')
         plt.ylim(0, 105)
         plt.grid(True, alpha=0.3, axis='y')
@@ -120,13 +120,13 @@ class ExperimentAnalyzer:
         output_path = os.path.join(self.output_dir, 'tasa_exito.png')
         plt.savefig(output_path, dpi=300, bbox_inches='tight')
         plt.show()
-        print(f"✅ Gráfica guardada: {output_path}")
+        print(f"Grafica guardada: {output_path}")
 
         return output_path
 
     def generar_grafica_nodos(self):
         """
-        Gráfica 3: Nodos expandidos vs Tamaño (escala logarítmica)
+        Grafica 3: Nodos expandidos vs Tamano (escala logaritmica)
         """
         plt.figure(figsize=(14, 8))
 
@@ -140,24 +140,24 @@ class ExperimentAnalyzer:
             palette='Set2'
         )
 
-        plt.title('Nodos Expandidos vs Tamaño del Tablero', fontsize=16, fontweight='bold')
-        plt.xlabel('Tamaño del Tablero (n x n)', fontsize=12)
+        plt.title('Nodos Expandidos vs Tamano del Tablero', fontsize=16, fontweight='bold')
+        plt.xlabel('Tamano del Tablero (n x n)', fontsize=12)
         plt.ylabel('Nodos Expandidos', fontsize=12)
         plt.legend(title='Dificultad')
-        plt.yscale('log')  # Escala logarítmica
+        plt.yscale('log')  # Escala logaritmica
         plt.grid(True, alpha=0.3)
 
         # Guardar
         output_path = os.path.join(self.output_dir, 'nodos_expandidos.png')
         plt.savefig(output_path, dpi=300, bbox_inches='tight')
         plt.show()
-        print(f"✅ Gráfica guardada: {output_path}")
+        print(f"Grafica guardada: {output_path}")
 
         return output_path
 
     def generar_grafica_calor(self):
         """
-        Gráfica 4: Mapa de calor de tiempos promedio
+        Grafica 4: Mapa de calor de tiempos promedio
         """
         plt.figure(figsize=(12, 8))
 
@@ -178,22 +178,22 @@ class ExperimentAnalyzer:
             cbar_kws={'label': 'Tiempo promedio (s)'}
         )
 
-        plt.title('Mapa de Calor: Tiempo Promedio por Tamaño y Dificultad',
+        plt.title('Mapa de Calor: Tiempo Promedio por Tamano y Dificultad',
                   fontsize=16, fontweight='bold')
-        plt.xlabel('Tamaño del Tablero', fontsize=12)
+        plt.xlabel('Tamano del Tablero', fontsize=12)
         plt.ylabel('Dificultad', fontsize=12)
 
         # Guardar
         output_path = os.path.join(self.output_dir, 'mapa_calor_tiempos.png')
         plt.savefig(output_path, dpi=300, bbox_inches='tight')
         plt.show()
-        print(f"✅ Gráfica guardada: {output_path}")
+        print(f"Grafica guardada: {output_path}")
 
         return output_path
 
     def generar_tabla_estadisticas(self) -> pd.DataFrame:
         """
-        Genera tabla resumen con estadísticas por grupo.
+        Genera tabla resumen con estadisticas por grupo.
         """
         stats = []
 
@@ -208,11 +208,11 @@ class ExperimentAnalyzer:
                 exitosos = grupo[grupo['exito'] == True]
 
                 stats.append({
-                    'Tamaño': f"{int(tamano)}x{int(tamano)}",
+                    'Tamano': f"{int(tamano)}x{int(tamano)}",
                     'Dificultad': dificultad.capitalize(),
                     'Instancias': len(grupo),
-                    'Éxitos': len(exitosos),
-                    'Tasa Éxito': f"{len(exitosos) / len(grupo) * 100:.1f}%",
+                    'Exitos': len(exitosos),
+                    'Tasa Exito': f"{len(exitosos) / len(grupo) * 100:.1f}%",
                     'Tiempo Prom (s)': f"{exitosos['tiempo_segundos'].mean():.3f}" if len(exitosos) > 0 else 'N/A',
                     'Tiempo Max (s)': f"{exitosos['tiempo_segundos'].max():.3f}" if len(exitosos) > 0 else 'N/A',
                     'Nodos Prom': f"{exitosos['nodos_expandidos'].mean():.0f}" if len(exitosos) > 0 else 'N/A',
@@ -226,40 +226,40 @@ class ExperimentAnalyzer:
         os.makedirs(os.path.dirname(output_path), exist_ok=True)
         df_stats.to_csv(output_path, index=False)
 
-        print("\n📊 TABLA DE ESTADÍSTICAS:")
+        print("\nTABLA DE ESTADISTICAS:")
         print(df_stats.to_string(index=False))
 
         return df_stats
 
     def generar_todas_graficas(self):
-        """Genera todas las gráficas y el análisis completo."""
+        """Genera todas las graficas y el analisis completo."""
         print("=" * 60)
-        print("📈 GENERANDO ANÁLISIS COMPLETO")
+        print("GENERANDO ANALISIS COMPLETO")
         print("=" * 60)
 
-        # Gráficas
+        # Graficas
         self.generar_grafica_tiempos()
         self.generar_grafica_exito()
         self.generar_grafica_nodos()
         self.generar_grafica_calor()
 
-        # Estadísticas
+        # Estadisticas
         stats = self.generar_tabla_estadisticas()
 
         # Generar reporte HTML
         self.generar_reporte_html(stats)
 
-        print("\n✅ Análisis completo generado en:", self.output_dir)
+        print("\nAnalisis completo generado en:", self.output_dir)
 
     def generar_reporte_html(self, stats_df: pd.DataFrame):
         """
-        Genera un reporte HTML con todas las gráficas y tablas.
+        Genera un reporte HTML con todas las graficas y tablas.
         """
         html_content = f"""
         <!DOCTYPE html>
         <html>
         <head>
-            <title>Análisis Empírico - IDA* Sliding Puzzle</title>
+            <title>Analisis Empirico - IDA* Sliding Puzzle</title>
             <style>
                 body {{ font-family: Arial, sans-serif; margin: 40px; }}
                 h1 {{ color: #2c3e50; }}
@@ -274,20 +274,20 @@ class ExperimentAnalyzer:
         </head>
         <body>
             <div class="container">
-                <h1>Análisis Empírico - IDA* para Sliding Puzzle</h1>
+                <h1>Analisis Empirico - IDA* para Sliding Puzzle</h1>
                 <p>Fecha: {pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S')}</p>
                 <p>Archivo de resultados: {os.path.basename(self.results_file)}</p>
 
-                <h2>Tabla de Estadísticas</h2>
+                <h2>Tabla de Estadisticas</h2>
                 {stats_df.to_html(index=False)}
 
-                <h2>Tiempo de Ejecución vs Tamaño</h2>
+                <h2>Tiempo de Ejecucion vs Tamano</h2>
                 <img src="tiempos_por_tamano.png" alt="Tiempos por tamaño">
 
-                <h2>Tasa de Éxito por Tamaño y Dificultad</h2>
+                <h2>Tasa de Exito por Tamano y Dificultad</h2>
                 <img src="tasa_exito.png" alt="Tasa de éxito">
 
-                <h2>Nodos Expandidos vs Tamaño</h2>
+                <h2>Nodos Expandidos vs Tamano</h2>
                 <img src="nodos_expandidos.png" alt="Nodos expandidos">
 
                 <h2>Mapa de Calor - Tiempos Promedio</h2>
@@ -295,9 +295,9 @@ class ExperimentAnalyzer:
 
                 <h2>Conclusiones</h2>
                 <p>
-                    El análisis muestra que IDA* es efectivo para tableros hasta 6x6,
-                    pero para 7x7 y 8x8 el tiempo de ejecución crece exponencialmente.
-                    La heurística Manhattan + Corner Penalty muestra mejor rendimiento
+                    El analisis muestra que IDA* es efectivo para tableros hasta 6x6,
+                    pero para 7x7 y 8x8 el tiempo de ejecucion crece exponencialmente.
+                    La heuristica Manhattan + Corner Penalty muestra mejor rendimiento
                     en casos con piezas en esquinas.
                 </p>
             </div>
@@ -309,21 +309,21 @@ class ExperimentAnalyzer:
         with open(output_path, 'w', encoding='utf-8') as f:
             f.write(html_content)
 
-        print(f"✅ Reporte HTML guardado: {output_path}")
+        print(f"Reporte HTML guardado: {output_path}")
 
 
 def main():
-    """Función principal para análisis."""
+    """Funcion principal para analisis."""
     import argparse
 
     parser = argparse.ArgumentParser(description='Analizar resultados experimentales')
     parser.add_argument('archivo', help='Archivo CSV con resultados')
-    parser.add_argument('--todo', action='store_true', help='Generar todas las gráficas')
+    parser.add_argument('--todo', action='store_true', help='Generar todas las graficas')
 
     args = parser.parse_args()
 
     if not os.path.exists(args.archivo):
-        print(f"❌ Archivo no encontrado: {args.archivo}")
+        print(f"Archivo no encontrado: {args.archivo}")
         return
 
     analyzer = ExperimentAnalyzer(args.archivo)
@@ -331,7 +331,7 @@ def main():
     if args.todo:
         analyzer.generar_todas_graficas()
     else:
-        # Mostrar solo estadísticas
+        # Mostrar solo estadisticas
         analyzer.generar_tabla_estadisticas()
 
 

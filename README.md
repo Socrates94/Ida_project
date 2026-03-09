@@ -1,5 +1,4 @@
 # IDA* Solver for the N-Puzzle
-
 ## Description
 
 This project implements the Iterative Deepening A* (IDA*) algorithm to solve the N-Puzzle problem for board sizes ranging from 4x4 up to 8x8.
@@ -14,7 +13,7 @@ The system includes:
 
 ---
 
-## 📂 Project Structure
+##Project Structure
 ida_project/
 │
 ├── src/                               # Código fuente principal

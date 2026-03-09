@@ -31,7 +31,7 @@ def leer_archivo(ruta_archivo: str) -> Tuple[Optional[int], Optional[Board], Opt
         print(f"Error: El archivo '{ruta_archivo}' no existe")
         return None, None, None
 
-    print(f"📖 Leyendo archivo: {ruta_archivo}")
+    print(f"Leyendo archivo: {ruta_archivo}")
 
     try:
         with open(ruta_archivo, 'r', encoding='utf-8') as f:
@@ -49,28 +49,22 @@ def leer_archivo(ruta_archivo: str) -> Tuple[Optional[int], Optional[Board], Opt
             print(f"Error: El archivo '{ruta_archivo}' no contiene datos válidos")
             return None, None, None
 
-        # =========================================================
         # 1. Leer dimensión
-        # =========================================================
         try:
             n = int(lineas_filtradas[0])
         except ValueError:
             print(f"Error: La primera línea debe ser un número entero, se encontró: '{lineas_filtradas[0]}'")
             return None, None, None
 
-        print(f"📏 Dimensión detectada: {n}x{n}")
+        print(f"Dimensión detectada: {n}x{n}")
 
-        # =========================================================
         # 2. Verificar que tenemos suficientes líneas
-        # =========================================================
         lineas_necesarias = 1 + 2 * n
         if len(lineas_filtradas) < lineas_necesarias:
             print(f"Error: Se esperaban {lineas_necesarias} líneas, se encontraron {len(lineas_filtradas)}")
             return None, None, None
 
-        # =========================================================
         # 3. Función auxiliar para convertir línea a lista de piezas
-        # =========================================================
         def linea_a_piezas(linea: str, num_fila: int) -> List[str]:
             partes = linea.split(',')
 
@@ -96,9 +90,7 @@ def leer_archivo(ruta_archivo: str) -> Tuple[Optional[int], Optional[Board], Opt
 
             return piezas
 
-        # =========================================================
         # 4. Leer tablero inicial
-        # =========================================================
         piezas_iniciales = []
         for i in range(n):
             linea = lineas_filtradas[1 + i]
@@ -109,9 +101,7 @@ def leer_archivo(ruta_archivo: str) -> Tuple[Optional[int], Optional[Board], Opt
                 print(f"Error en línea {1 + i + 1} (inicial): {e}")
                 return None, None, None
 
-        # =========================================================
         # 5. Leer tablero objetivo
-        # =========================================================
         piezas_objetivo = []
         for i in range(n):
             linea = lineas_filtradas[1 + n + i]
@@ -122,13 +112,11 @@ def leer_archivo(ruta_archivo: str) -> Tuple[Optional[int], Optional[Board], Opt
                 print(f"Error en línea {1 + n + i + 1} (objetivo): {e}")
                 return None, None, None
 
-        # =========================================================
         # 6. Crear objetos Board
-        # =========================================================
         tablero_inicial = Board(n, piezas_iniciales)
         tablero_objetivo = Board(n, piezas_objetivo)
 
-        print("✅ Archivo leído correctamente")
+        print("Archivo leído correctamente")
         return n, tablero_inicial, tablero_objetivo
 
     except Exception as e:
@@ -144,24 +132,22 @@ def formatear_salida(movimientos: List[str]) -> str:
 def mostrar_tableros(inicial: Board, objetivo: Board):
     """Muestra los tableros de forma legible."""
     print("\n" + "=" * 50)
-    print("📋 TABLERO INICIAL:")
+    print("TABLERO INICIAL:")
     print("=" * 50)
     print(inicial)
 
     print("\n" + "=" * 50)
-    print("🎯 TABLERO OBJETIVO:")
+    print("TABLERO OBJETIVO:")
     print("=" * 50)
     print(objetivo)
 
     # Mostrar también en formato numérico
-    print("\n🔢 Formato numérico (inicial):")
+    print("\nFormato numérico (inicial):")
     for fila in inicial.to_movements_format():
         print(fila)
 
 
-# ============================================================================
 # Función principal para probar la lectura
-# ============================================================================
 if __name__ == "__main__":
     import argparse
 
@@ -173,7 +159,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     print("=" * 60)
-    print("🔍 PRUEBA DE LECTURA DE ARCHIVOS")
+    print("PRUEBA DE LECTURA DE ARCHIVOS")
     print("=" * 60)
 
     # Leer el archivo
@@ -181,6 +167,6 @@ if __name__ == "__main__":
 
     if inicial and objetivo:
         mostrar_tableros(inicial, objetivo)
-        print("\n✅ Prueba exitosa: El archivo se leyó correctamente.")
+        print("\nPrueba exitosa: El archivo se leyó correctamente.")
     else:
-        print("\n❌ Error al leer el archivo.")
+        print("\nError al leer el archivo.")

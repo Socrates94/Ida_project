@@ -1,6 +1,6 @@
 # experiments/runner.py
 """
-Ejecuta los experimentos masivos para el análisis empírico (Pregunta 5).
+Ejecuta los experimentos masivos para el analisis empirico (Pregunta 5).
 Lee las instancias generadas y ejecuta IDA* con diferentes configuraciones.
 """
 import os
@@ -9,13 +9,12 @@ import time
 import csv
 from typing import List, Dict, Any
 from datetime import datetime
-import json
 
-# Añadir el directorio raíz al path
+# Añadir el directorio raiz al path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from src.core.ida_star import IDAStar
-from src.core.heuristics import get_heuristic, get_heuristic_name, HEURISTICS
+from src.core.heuristics import get_heuristic, get_heuristic_name
 from src.io.io_handler import leer_archivo
 
 
@@ -24,17 +23,17 @@ class ExperimentRunner:
     Ejecuta experimentos masivos sobre las instancias generadas.
     """
 
-    def __init__(self, heuristic_key='2', timeout=300):
+    def __init__(self, heuristic_keys='2', timeout=300):
         """
         Inicializa el runner de experimentos.
 
         Args:
-            heuristic_key: Clave de heurística a usar ('1','2','3','4')
-            timeout: Tiempo máximo por instancia en segundos
+            heuristic_keys: Claves de heuristicas separadas por comas (ej. '2,3,4').
+            timeout: Tiempo maximo por instancia en segundos.
         """
-        self.heuristic_key = heuristic_key
-        self.heuristic_func = get_heuristic(heuristic_key)
-        self.heuristic_name = get_heuristic_name(self.heuristic_func)
+        self.heuristic_keys = heuristic_keys.split(',') if isinstance(heuristic_keys, str) else [heuristic_keys]
+        self.heuristic_funcs = [get_heuristic(k.strip()) for k in self.heuristic_keys]
+        self.heuristic_name = '+'.join([get_heuristic_name(f) for f in self.heuristic_funcs])
         self.timeout = timeout
         self.results_dir = os.path.join('data', 'results', 'raw')
         os.makedirs(self.results_dir, exist_ok=True)
@@ -51,7 +50,7 @@ class ExperimentRunner:
 
         if not start or not goal:
             return {
-                'archivo': filepath,
+                'archivo': os.path.basename(filepath),
                 'tamano': 0,
                 'exito': False,
                 'error': 'No se pudo leer el archivo'
@@ -59,7 +58,6 @@ class ExperimentRunner:
 
         # Extraer metadatos del nombre del archivo
         filename = os.path.basename(filepath)
-        partes = filename.replace('.txt', '').split('_')
         dificultad = 'desconocida'
         movimientos_iniciales = 0
 
@@ -76,10 +74,19 @@ class ExperimentRunner:
 
         # Ejecutar IDA*
         start_time = time.time()
-        solver = IDAStar(heuristic_func=self.heuristic_func, max_time=self.timeout)
+        solver = IDAStar(heuristic_list=self.heuristic_funcs, goal_board=goal)
 
         try:
-            moves, elapsed, nodes, depth = solver.search(start, goal)
+            moves = solver.search(start_board=start, max_time=self.timeout)
+            elapsed = time.time() - start_time
+
+            # Obtener estadísticas directamente del solver
+            nodes = solver.nodes_expanded
+            depth = solver.max_depth
+
+            # Para depuración, imprimir valores si son relevantes
+            if moves is not None:
+                print(f"      DEBUG: {filename} - moves len={len(moves)}, nodes={nodes}, depth={depth}")
 
             result = {
                 'archivo': filename,
@@ -88,7 +95,7 @@ class ExperimentRunner:
                 'movimientos_iniciales': movimientos_iniciales,
                 'exito': moves is not None,
                 'tiempo_segundos': round(elapsed, 4),
-                'nodos_expandidos': nodes,
+                'nodos_expandidos': nodes if moves is not None else 0,
                 'profundidad_solucion': len(moves) if moves else 0,
                 'movimientos': ','.join(moves) if moves else '',
                 'heuristica': self.heuristic_name,
@@ -97,6 +104,9 @@ class ExperimentRunner:
             }
 
         except Exception as e:
+            elapsed = time.time() - start_time
+            import traceback
+            traceback.print_exc()
             result = {
                 'archivo': filename,
                 'tamano': n,
@@ -104,7 +114,7 @@ class ExperimentRunner:
                 'movimientos_iniciales': movimientos_iniciales,
                 'exito': False,
                 'error': str(e),
-                'tiempo_segundos': time.time() - start_time,
+                'tiempo_segundos': round(elapsed, 4),
                 'heuristica': self.heuristic_name,
                 'timestamp': datetime.now().isoformat()
             }
@@ -123,7 +133,7 @@ class ExperimentRunner:
             Lista de resultados
         """
         if not os.path.exists(instances_dir):
-            print(f"❌ Directorio no encontrado: {instances_dir}")
+            print(f"Directorio no encontrado: {instances_dir}")
             return []
 
         # Buscar todos los archivos .txt
@@ -134,7 +144,7 @@ class ExperimentRunner:
                     instances.append(os.path.join(root, file))
 
         instances.sort()
-        print(f"📊 Encontradas {len(instances)} instancias en {instances_dir}")
+        print(f"Encontradas {len(instances)} instancias en {instances_dir}")
 
         if not instances:
             return []
@@ -148,8 +158,8 @@ class ExperimentRunner:
             result = self.run_single_instance(inst_path)
             results.append(result)
 
-            # Mostrar resultado rápido
-            status = "✅" if result['exito'] else "❌"
+            # Mostrar resultado rapido
+            status = "OK" if result['exito'] else "FALLO"
             print(f"     {status} Tiempo: {result['tiempo_segundos']:.2f}s, "
                   f"Nodos: {result.get('nodos_expandidos', 0)}")
 
@@ -161,7 +171,7 @@ class ExperimentRunner:
 
     def run_all_difficulties(self, base_dir: str = 'data/instances'):
         """
-        Ejecuta experimentos sobre todas las dificultades y tamaños.
+        Ejecuta experimentos sobre todas las dificultades y tamanos.
 
         Args:
             base_dir: Directorio base de instancias
@@ -169,17 +179,19 @@ class ExperimentRunner:
         tamanios = ['4x4', '5x5', '6x6', '7x7', '8x8']
         dificultades = ['facil', 'medio', 'dificil']
 
+        # Crear nombre de archivo basado en las claves de heuristica
+        key_str = '+'.join(self.heuristic_keys)
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
         output_file = os.path.join(
             self.results_dir,
-            f'experimento_h{self.heuristic_key}_{timestamp}.csv'
+            f'experimento_h{key_str}_{timestamp}.csv'
         )
 
         all_results = []
 
         print("=" * 80)
-        print(f"🧪 INICIANDO EXPERIMENTO MASIVO")
-        print(f"   Heurística: {self.heuristic_name} (clave {self.heuristic_key})")
+        print("INICIANDO EXPERIMENTO MASIVO")
+        print(f"   Heuristica(s): {self.heuristic_name} (claves {key_str})")
         print(f"   Timeout: {self.timeout}s por instancia")
         print(f"   Resultados: {output_file}")
         print("=" * 80)
@@ -189,10 +201,10 @@ class ExperimentRunner:
                 instances_dir = os.path.join(base_dir, tamano, dificultad)
 
                 if not os.path.exists(instances_dir):
-                    print(f"\n⚠️  Directorio no encontrado: {instances_dir}")
+                    print(f"\nDirectorio no encontrado: {instances_dir}")
                     continue
 
-                print(f"\n📌 Procesando: {tamano} - {dificultad}")
+                print(f"\nProcesando: {tamano} - {dificultad}")
                 results = self.run_batch(instances_dir)
                 all_results.extend(results)
 
@@ -200,7 +212,7 @@ class ExperimentRunner:
         self._save_results(all_results, output_file)
 
         print("\n" + "=" * 80)
-        print(f"✅ EXPERIMENTO COMPLETADO")
+        print("EXPERIMENTO COMPLETADO")
         print(f"   Total instancias: {len(all_results)}")
         print(f"   Resultados guardados en: {output_file}")
         print("=" * 80)
@@ -228,41 +240,40 @@ class ExperimentRunner:
                 row = {k: r.get(k, '') for k in fieldnames}
                 writer.writerow(row)
 
-        print(f"💾 Resultados guardados: {output_file}")
+        print(f"Resultados guardados: {output_file}")
 
 
 def main():
-    """Función principal para ejecutar experimentos."""
+    """Funcion principal para ejecutar experimentos."""
     import argparse
 
     parser = argparse.ArgumentParser(description='Ejecutar experimentos masivos')
     parser.add_argument('--heuristica', type=str, default='2',
-                        choices=['1', '2', '3', '4'],
-                        help='Heurística a usar (1=Hamming, 2=Manhattan, 3=Linear, 4=Corner)')
+                        help='Heuristicas a usar, separadas por comas (ej. 2,3,4)')
     parser.add_argument('--timeout', type=int, default=300,
                         help='Timeout por instancia en segundos')
     parser.add_argument('--modo', choices=['todo', 'resumen'], default='todo',
-                        help='Modo de ejecución')
+                        help='Modo de ejecucion')
 
     args = parser.parse_args()
 
     runner = ExperimentRunner(
-        heuristic_key=args.heuristica,
+        heuristic_keys=args.heuristica,
         timeout=args.timeout
     )
 
     if args.modo == 'todo':
         results, output_file = runner.run_all_difficulties()
 
-        # Mostrar resumen rápido
-        print("\n📊 RESUMEN RÁPIDO:")
+        # Mostrar resumen rapido
+        print("\nRESUMEN RAPIDO:")
         total = len(results)
         exitosos = sum(1 for r in results if r.get('exito', False))
         print(f"   Total: {total}")
         print(f"   Exitosos: {exitosos} ({exitosos / total * 100:.1f}%)")
 
     elif args.modo == 'resumen':
-        # Aquí podríamos mostrar resumen de resultados existentes
+        # Aqui podriamos mostrar resumen de resultados existentes
         pass
 
 

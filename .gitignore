@@ -1,0 +1,23 @@
+# Ambientes virtuales
+venv/
+.venv/
+env/
+
+# Caché de Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# IDEs
+.idea/
+.vscode/
+
+# Datos generados o muy pesados`
+data/instances/
+data/results/
+*.csv
+tmp_8x8/
+
+# Archivos de prueba temporales
+test_*.py
+prueba_*.csv

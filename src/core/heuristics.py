@@ -12,16 +12,14 @@ Heurísticas implementadas:
 2. Manhattan Distance - Balance perfecto velocidad/precisión
 3. Manhattan + Linear Conflict - Muy precisa, detecta interacciones
 4. Manhattan + Corner Penalty - Propia, penaliza esquinas incorrectas
+5. Fila Distance - Cuenta piezas fuera de su fila
 """
 import math
 from typing import List, Tuple, Dict, Set
 from src.core.board import Board
 
 
-# ============================================================================
 # FUNCIÓN DE EVALUACIÓN PRINCIPAL f(n) = g(n) + h(n)
-# ============================================================================
-
 def evaluacion_f(board: Board, target_board: Board, g: int, heuristic_func) -> float:
     """
     Función de evaluación f(n) = g(n) + h(n)
@@ -45,17 +43,14 @@ def evaluacion_f(board: Board, target_board: Board, g: int, heuristic_func) -> f
     return f
 
 
-# ============================================================================
 # HEURÍSTICA 1: Hamming Distance (Mal colocadas)
-# ============================================================================
-
 def hamming_distance(board: Board, target_board: Board) -> float:
     """
     Heurística de distancia Hamming.
     Cuenta el número de piezas que NO están en su posición correcta.
 
     Complejidad: O(n²) - Muy rápida
-    Admisible: ✅ Sí (cada pieza mal necesita al menos 1 movimiento)
+    Admisible: Sí (cada pieza mal necesita al menos 1 movimiento)
 
     Para 8x8: Valor típico entre 0-63
 
@@ -63,7 +58,7 @@ def hamming_distance(board: Board, target_board: Board) -> float:
     Actual: 1 2 3    Meta: 1 2 3
             4 5 6          4 5 6
             7 8 0          8 0 7
-    Piezas mal: 8 y 7 → Hamming = 2
+    Piezas mal: 8 y 7 -> Hamming = 2
     """
     dimension = board.get_dimension()
     count = 0
@@ -80,17 +75,14 @@ def hamming_distance(board: Board, target_board: Board) -> float:
     return float(count)
 
 
-# ============================================================================
 # HEURÍSTICA 2: Manhattan Distance
-# ============================================================================
-
 def manhattan_distance(board: Board, target_board: Board) -> float:
     """
     Heurística de distancia Manhattan.
     Suma de |x1-x2| + |y1-y2| para cada pieza hasta su posición objetivo.
 
     Complejidad: O(n²) - Rápida
-    Admisible: ✅ Sí (cada movimiento solo puede reducir la distancia en 1)
+    Admisible: Sí (cada movimiento solo puede reducir la distancia en 1)
 
     Para 8x8: Valor típico entre 0-400
     Es el MEJOR BALANCE entre velocidad y precisión para 8x8.
@@ -100,8 +92,8 @@ def manhattan_distance(board: Board, target_board: Board) -> float:
             4 5 6          4 5 6
             7 8 0          8 0 7
 
-    Pieza 8: (2,1)→(2,0) dist 1
-    Pieza 7: (2,0)→(2,2) dist 2
+    Pieza 8: (2,1)->(2,0) dist 1
+    Pieza 7: (2,0)->(2,2) dist 2
     Manhattan = 3
     """
     dimension = board.get_dimension()
@@ -125,142 +117,87 @@ def manhattan_distance(board: Board, target_board: Board) -> float:
     return float(total)
 
 
-# ============================================================================
 # HEURÍSTICA 3: Manhattan + Linear Conflict
-# ============================================================================
-
 def linear_conflict(board: Board, target_board: Board) -> float:
     """
     Heurística de Manhattan + Conflictos Lineales.
 
     Un conflicto lineal ocurre cuando dos piezas están en la misma fila/columna
-    pero en orden inverso al que deberían estar, lo que requiere movimientos
-    adicionales para resolverse.
+    pero en orden inverso al que deberían estar. Cada conflicto resuelto requiere
+    al menos 2 movimientos extra.
 
-    Complejidad: O(n³) en el peor caso - Moderada
-    Admisible: ✅ Sí (cada conflicto requiere al menos 2 movimientos extra)
-
-    Para 8x8: Más precisa que Manhattan, pero verificar rendimiento.
-    Cada conflicto suma 2 a la heurística.
-
-    Ejemplo:
-    Actual: 1 2 3    Meta: 1 2 3
-            4 5 6          4 5 6
-            7 8 0          8 0 7
-
-    Manhattan = 3
-    Conflicto: 8 y 7 intercambiadas en fila 2 → +2
-    Total = 5
+    Complejidad: O(n²) a O(n³)
+    Admisible: Sí
     """
-    # Base: Manhattan
     h = manhattan_distance(board, target_board)
-
     dimension = board.get_dimension()
     conflicts = 0
 
-    # Mapa de posiciones objetivo
     target_positions = {}
     for i in range(dimension):
         for j in range(dimension):
             piece = target_board.get_piece(i, j)
             target_positions[piece] = (i, j)
 
-    # =========================================================
     # Conflictos en filas
-    # =========================================================
     for i in range(dimension):
-        # Piezas en esta fila que deberían estar en esta fila
-        row_pieces = []  # (col_actual, col_objetivo)
-
+        row_pieces = []
         for j in range(dimension):
             piece = board.get_piece(i, j)
             if piece != "#":
                 ti, tj = target_positions[piece]
-                if ti == i:  # Debería estar en esta fila
-                    row_pieces.append((j, tj))
+                if ti == i:
+                    row_pieces.append(tj)
+        
+        # Encontrar el número máximo de piezas en la fila que NO están en conflicto (Longitud de la Subsecuencia Creciente Más Larga - LIS)
+        if len(row_pieces) > 1:
+            lis = [1] * len(row_pieces)
+            for k in range(1, len(row_pieces)):
+                for l in range(k):
+                    if row_pieces[k] > row_pieces[l]:
+                        lis[k] = max(lis[k], lis[l] + 1)
+            # Piezas a remover de la fila para resolver conflictos = len(row) - max(LIS)
+            # Cada pieza removida cuesta 2 movimientos extra
+            conflicts += (len(row_pieces) - max(lis))
 
-        # Detectar conflictos: pares intercambiados
-        for k in range(len(row_pieces)):
-            for l in range(k + 1, len(row_pieces)):
-                if (row_pieces[k][0] < row_pieces[l][0] and
-                    row_pieces[k][1] > row_pieces[l][1]):
-                    conflicts += 1
-                elif (row_pieces[k][0] > row_pieces[l][0] and
-                      row_pieces[k][1] < row_pieces[l][1]):
-                    conflicts += 1
-
-    # =========================================================
     # Conflictos en columnas
-    # =========================================================
     for j in range(dimension):
-        # Piezas en esta columna que deberían estar en esta columna
-        col_pieces = []  # (fila_actual, fila_objetivo)
-
+        col_pieces = []
         for i in range(dimension):
             piece = board.get_piece(i, j)
             if piece != "#":
                 ti, tj = target_positions[piece]
-                if tj == j:  # Debería estar en esta columna
-                    col_pieces.append((i, ti))
+                if tj == j:
+                    col_pieces.append(ti)
+        
+        if len(col_pieces) > 1:
+            lis = [1] * len(col_pieces)
+            for k in range(1, len(col_pieces)):
+                for l in range(k):
+                    if col_pieces[k] > col_pieces[l]:
+                        lis[k] = max(lis[k], lis[l] + 1)
+            conflicts += (len(col_pieces) - max(lis))
 
-        for k in range(len(col_pieces)):
-            for l in range(k + 1, len(col_pieces)):
-                if (col_pieces[k][0] < col_pieces[l][0] and
-                    col_pieces[k][1] > col_pieces[l][1]):
-                    conflicts += 1
-                elif (col_pieces[k][0] > col_pieces[l][0] and
-                      col_pieces[k][1] < col_pieces[l][1]):
-                    conflicts += 1
-
-    # Cada conflicto requiere al menos 2 movimientos adicionales
     return h + 2 * conflicts
 
 
-# ============================================================================
-# HEURÍSTICA 4: Manhattan + Corner Penalty (PROPUESTA PROPIA)
-# ============================================================================
-
+# HEURÍSTICA 4: Manhattan + Corner Penalty (CORREGIDA)
 def manhattan_corner_penalty(board: Board, target_board: Board) -> float:
     """
-    Heurística: Manhattan + Penalización por esquinas.
-    PROPUESTA PROPIA - Creada específicamente para este examen.
-
-    IDEA: Las piezas en las esquinas son las más difíciles de mover.
-    Si una pieza está en la esquina equivocada, necesitará movimientos extra
-    para salir y volver a entrar.
-
-    COMPLEJIDAD: O(n²) - Muy rápida (solo revisa 4 esquinas)
-
-    ADMISIBILIDAD: ✅ Sí, porque:
-    - Penalización 2: Una pieza en esquina incorrecta realmente necesita
-      al menos 2 movimientos para salir de la esquina
-    - Penalización 1: Una pieza que debe salir de esquina necesita 1 movimiento
-
-    Para 8x8: Mejora Manhattan sin sacrificar velocidad, ideal para tableros grandes.
-
-    Ejemplo:
-    Si una pieza que debería estar en (0,0) está en (0,7):
-    - Manhattan ya cuenta la distancia (7+0=7)
-    - Corner Penalty añade +2 por estar en esquina incorrecta
-    Total = 9 (más preciso que 7)
+    Heurística: Manhattan + Penalización por esquinas admisibles.
+    
+    Penaliza si y solo si la pieza CORRECTA de la esquina está bloqueada
+    por una pieza adyacente que también está en su posición final incorrecta.
+    Esta situación requiere que alguna de las dos se mueva "alrededor", costando 
+    al menos 2 movimientos extra que no captura Manhattan puro.
+    
+    Admisible: Sí, es una versión simplificada de un conflicto lineal de esquina.
     """
-    # Primero calculamos Manhattan
     h = manhattan_distance(board, target_board)
-
     dimension = board.get_dimension()
-    if dimension < 3:  # Penalización solo relevante en tableros grandes
+    if dimension < 3: 
         return h
 
-    # Posiciones de las 4 esquinas
-    corners = [
-        (0, 0),  # Superior izquierda
-        (0, dimension-1),  # Superior derecha
-        (dimension-1, 0),  # Inferior izquierda
-        (dimension-1, dimension-1)  # Inferior derecha
-    ]
-    corners_set = set(corners)
-
-    # Mapa de posiciones objetivo
     target_positions = {}
     for i in range(dimension):
         for j in range(dimension):
@@ -268,72 +205,93 @@ def manhattan_corner_penalty(board: Board, target_board: Board) -> float:
             target_positions[piece] = (i, j)
 
     penalty = 0
+    # Revisamos las 4 esquinas de forma conservadora.
+    # Por ejemplo: Esquina TL (0,0). Sus adyacencias son (0,1) y (1,0)
+    def check_corner(cx, cy, ady1x, ady1y, ady2x, ady2y):
+        piece_corner = board.get_piece(cx, cy)
+        piece_ady1 = board.get_piece(ady1x, ady1y)
+        piece_ady2 = board.get_piece(ady2x, ady2y)
+        
+        # Si la esquina NO es el pedazo correcto, pero los adyacentes SÍ son correctos (están en su meta)
+        # Significa que para sacar a la pieza equivocada de la esquina, hay que desplazar una correcta 
+        # y luego regresarla.
+        if piece_corner != "#" and piece_ady1 != "#" and piece_ady2 != "#":
+             t_cx, t_cy = target_positions[piece_corner]
+             t_ady1x, t_ady1y = target_positions[piece_ady1]
+             t_ady2x, t_ady2y = target_positions[piece_ady2]
+             
+             # La pieza en la esquina NO está en su meta
+             if (t_cx, t_cy) != (cx, cy):
+                 # Y las dos que bloquean SÍ están en su meta
+                 if (t_ady1x, t_ady1y) == (ady1x, ady1y) and (t_ady2x, t_ady2y) == (ady2x, ady2y):
+                     return 2 # Costo extra ineludible
+        return 0
 
-    # Revisar cada esquina del tablero actual
-    for i, j in corners:
-        piece = board.get_piece(i, j)
-        if piece == "#":  # El espacio vacío no penaliza
-            continue
-
-        ti, tj = target_positions[piece]
-        current_corner = (i, j)
-        target_corner = (ti, tj)
-
-        # Caso 1: La pieza DEBERÍA estar en UNA esquina
-        if target_corner in corners_set:
-            # Si está en la esquina correcta, no penalizar
-            if current_corner == target_corner:
-                continue
-            # Si está en OTRA esquina (peor caso)
-            else:
-                # Necesitará moverse entre esquinas (mucho más costoso)
-                penalty += 2
-
-        # Caso 2: La pieza NO debería estar en esquina (está estorbando)
-        elif target_corner not in corners_set:
-            # Penalizar porque está ocupando una esquina valiosa
-            penalty += 1
-
-    # Bonus: Si el vacío está en una esquina, es bueno (facilita movimientos)
-    empty_i, empty_j = board.get_empty_position()
-    if (empty_i, empty_j) in corners_set:
-        penalty = max(0, penalty - 1)  # Reducir penalización
+    penalty += check_corner(0, 0, 0, 1, 1, 0) # Top-Left
+    penalty += check_corner(0, dimension-1, 0, dimension-2, 1, dimension-1) # Top-Right
+    penalty += check_corner(dimension-1, 0, dimension-2, 0, dimension-1, 1) # Bottom-Left
+    penalty += check_corner(dimension-1, dimension-1, dimension-1, dimension-2, dimension-2, dimension-1) # Bottom-Right
 
     return h + penalty
 
 
-# ============================================================================
-# DICCIONARIO DE HEURÍSTICAS DISPONIBLES
-# ============================================================================
+# HEURÍSTICA 5: Fila Distance (Piezas fuera de su fila)
+def fila_distance(board: Board, target_board: Board) -> float:
+    """
+    Heurística de piezas fuera de su fila.
+    Cuenta cuántas piezas no están en la fila que les corresponde en el objetivo.
+    Admisible: cada pieza fuera de su fila requiere al menos 1 movimiento.
+    Complejidad: O(n²) usando diccionario de posiciones objetivo.
+    """
+    dimension = board.get_dimension()
+    # Precalcular posiciones objetivo para acceso rápido
+    target_positions = {}
+    for i in range(dimension):
+        for j in range(dimension):
+            piece = target_board.get_piece(i, j)
+            target_positions[piece] = (i, j)
 
+    count = 0
+    for i in range(dimension):
+        for j in range(dimension):
+            piece = board.get_piece(i, j)
+            if piece != '#':
+                ti, _ = target_positions[piece]
+                if ti != i:
+                    count += 1
+    return float(count)
+
+
+# DICCIONARIO DE HEURÍSTICAS DISPONIBLES
 HEURISTICS = {
-    '1': ('Hamming Distance', hamming_distance, True, '⚡ Rápida, poco precisa'),
-    '2': ('Manhattan Distance', manhattan_distance, True, '⚡⚡ Balance perfecto para 8x8'),
-    '3': ('Linear Conflict', linear_conflict, True, '⚡⚡⚡ Muy precisa, más lenta'),
-    '4': ('Corner Penalty', manhattan_corner_penalty, True, '⚡⚡ Propia, ideal para 8x8'),
+    '1': ('Hamming Distance', hamming_distance, True, 'Rapida, poco precisa'),
+    '2': ('Manhattan Distance', manhattan_distance, True, 'Balance perfecto para 8x8'),
+    '3': ('Linear Conflict', linear_conflict, True, 'Muy precisa, mas lenta'),
+    '4': ('Corner Penalty', manhattan_corner_penalty, True, 'Propia, ideal para 8x8'),
+    '5': ('Fila Distance', fila_distance, True, 'Cuenta piezas fuera de su fila')
 }
 
 # Recomendación para 8x8
 RECOMENDACION_8x8 = """
-🔍 RECOMENDACIÓN PARA TABLEROS 8x8:
+RECOMENDACION PARA TABLEROS 8x8:
 
 Para tableros grandes (8x8), recomiendo:
 
-1. 🥇 MANHATTAN DISTANCE (H2): Mejor balance velocidad/precisión
-   - Rápida de calcular
+1. MANHATTAN DISTANCE (H2): Mejor balance velocidad/precision
+   - Rapida de calcular
    - Suficientemente precisa
-   - IDA* iterará menos veces
+   - IDA* iterara menos veces
 
-2. 🥈 CORNER PENALTY (H4): Mi propuesta mejorada
-   - Casi tan rápida como Manhattan
-   - Más precisa en situaciones de esquina
+2. CORNER PENALTY (H4): Mi propuesta mejorada
+   - Casi tan rapida como Manhattan
+   - Mas precisa en situaciones de esquina
    - Ideal para destacar en el examen
 
-3. 🥉 LINEAR CONFLICT (H3): Solo si es rápida en tu máquina
+3. LINEAR CONFLICT (H3): Solo si es rapida en tu maquina
    - Prueba primero con algunos casos
-   - Si tarda >0.1s por evaluación, mejor no usarla
+   - Si tarda >0.1s por evaluacion, mejor no usarla
 
-4. ⚠️ HAMMING (H1): Evitar para 8x8 (muy lenta por iteraciones)
+4. HAMMING (H1): Evitar para 8x8 (muy lenta por iteraciones)
 """
 
 
@@ -342,7 +300,7 @@ def get_heuristic(name_or_key: str):
     Obtiene una función heurística por nombre o clave.
 
     Args:
-        name_or_key: '1','2','3','4' o nombre parcial
+        name_or_key: '1','2','3','4','5' o nombre parcial
 
     Returns:
         Función heurística
@@ -358,7 +316,7 @@ def get_heuristic(name_or_key: str):
             return func
 
     # Por defecto: Manhattan (mejor para 8x8)
-    print(f"⚠️  Heurística '{name_or_key}' no encontrada. Usando Manhattan (recomendada para 8x8).")
+    print(f"Advertencia: Heuristica '{name_or_key}' no encontrada. Usando Manhattan (recomendada para 8x8).")
     return manhattan_distance
 
 
@@ -383,17 +341,14 @@ def get_heuristic_info(heuristic_func) -> dict:
     return None
 
 
-# ============================================================================
-# EJEMPLO DE CÁLCULO (RESPUESTA A LA PREGUNTA 3)
-# ============================================================================
-
+# EJEMPLO DE CÁLCULO
 def ejemplo_calculo_pregunta3():
     """
     Muestra un ejemplo detallado de cómo se calcula f = g + h
     para un estado actual y una meta predefinida.
     """
     print("=" * 70)
-    print("PREGUNTA 3: EJEMPLO DE CÁLCULO DE LA FUNCIÓN DE EVALUACIÓN f")
+    print("PREGUNTA 3: EJEMPLO DE CALCULO DE LA FUNCION DE EVALUACION f")
     print("=" * 70)
 
     # Crear tablero objetivo (estado meta)
@@ -410,9 +365,9 @@ def ejemplo_calculo_pregunta3():
         "7", "6", "#"
     ])
 
-    print("\n🎯 ESTADO META:")
+    print("\nESTADO META:")
     print(goal)
-    print("\n🔷 ESTADO ACTUAL (a 2 movimientos de la meta):")
+    print("\nESTADO ACTUAL (a 2 movimientos de la meta):")
     print(current)
 
     print("\n" + "-" * 70)
@@ -422,7 +377,7 @@ def ejemplo_calculo_pregunta3():
     print(f"   g = {g} (hemos realizado 5 movimientos desde el inicio)")
 
     print("\n" + "-" * 70)
-    print("PASO 2: Calculamos h(n) con diferentes heurísticas")
+    print("PASO 2: Calculamos h(n) con diferentes heuristicas")
     print("-" * 70)
 
     # Calcular cada heurística
@@ -430,68 +385,74 @@ def ejemplo_calculo_pregunta3():
     h2 = manhattan_distance(current, goal)
     h3 = linear_conflict(current, goal)
     h4 = manhattan_corner_penalty(current, goal)
+    h5 = fila_distance(current, goal)
 
-    print(f"\n📊 Heurística 1 - Hamming Distance:")
+    print(f"\nHeuristica 1 - Hamming Distance:")
     print(f"   h1 = {h1}")
-    print(f"   Explicación: Piezas mal colocadas: 4 y 5 → 2")
+    print(f"   Explicacion: Piezas mal colocadas: 4 y 5 -> 2")
 
-    print(f"\n📊 Heurística 2 - Manhattan Distance:")
+    print(f"\nHeuristica 2 - Manhattan Distance:")
     print(f"   h2 = {h2}")
-    print(f"   Explicación: Pieza 4: (1,1)→(1,2) dist 1")
-    print(f"               Pieza 5: (1,2)→(1,1) dist 1")
+    print(f"   Explicacion: Pieza 4: (1,1)->(1,2) dist 1")
+    print(f"               Pieza 5: (1,2)->(1,1) dist 1")
     print(f"               Total = 2")
 
-    print(f"\n📊 Heurística 3 - Linear Conflict:")
+    print(f"\nHeuristica 3 - Linear Conflict:")
     print(f"   h3 = {h3}")
-    print(f"   Explicación: Manhattan (2) + 2×conflictos(1) = 4")
+    print(f"   Explicacion: Manhattan (2) + 2x conflictos(1) = 4")
     print(f"               Conflicto: 4 y 5 intercambiadas")
 
-    print(f"\n📊 Heurística 4 - Corner Penalty (PROPIA):")
+    print(f"\nHeuristica 4 - Corner Penalty (PROPIA):")
     print(f"   h4 = {h4}")
-    print(f"   Explicación: Manhattan (2) + penalización(0) = 2")
+    print(f"   Explicacion: Manhattan (2) + penalizacion(0) = 2")
     print(f"               (No hay esquinas involucradas en 3x3)")
+
+    print(f"\nHeuristica 5 - Fila Distance:")
+    print(f"   h5 = {h5}")
+    print(f"   Explicacion: Piezas fuera de su fila: 4 y 5 (ambas en fila 1, deberian en fila 1? No, en este caso 4 y 5 estan en su fila correcta? En 3x3, las filas son 0,1,2. Pieza 4 deberia estar en fila 1? Si, esta en fila 1, igual 5. Entonces 0. El ejemplo no muestra fila incorrecta.")
 
     print("\n" + "-" * 70)
     print("PASO 3: Calculamos f(n) = g(n) + h(n)")
     print("-" * 70)
 
-    print(f"\nCon Heurística Manhattan:")
+    print(f"\nCon Heuristica Manhattan:")
     print(f"   f = g + h = {g} + {h2} = {g + h2}")
 
-    print(f"\nCon Heurística Linear Conflict:")
+    print(f"\nCon Heuristica Linear Conflict:")
     print(f"   f = g + h = {g} + {h3} = {g + h3}")
 
-    print(f"\nCon Heurística Corner Penalty (propia):")
+    print(f"\nCon Heuristica Corner Penalty (propia):")
     print(f"   f = g + h = {g} + {h4} = {g + h4}")
 
     print("\n" + "-" * 70)
-    print("ARGUMENTACIÓN: ¿Por qué es buena esta función de evaluación?")
+    print("ARGUMENTACION: ¿Por que es buena esta funcion de evaluacion?")
     print("-" * 70)
     print("""
-    La función f(n) = g(n) + h(n) es excelente para la búsqueda porque:
+    La funcion f(n) = g(n) + h(n) es excelente para la busqueda porque:
 
-    1️⃣  **Equilibrio entre pasado y futuro**: 
+    1. Equilibrio entre pasado y futuro:
         - g(n) representa el costo REAL ya invertido
         - h(n) estima el costo FUTURO por invertir
-        - Juntas dan una estimación completa del costo total
+        - Juntas dan una estimacion completa del costo total
 
-    2️⃣  **Optimalidad (si h es admisible)**:
+    2. Optimalidad (si h es admisible):
         - Si h(n) NUNCA sobreestima, entonces f(n) es optimista
-        - IDA* garantiza encontrar la solución ÓPTIMA
+        - IDA* garantiza encontrar la solucion OPTIMA
 
-    3️⃣  **Eficiencia en 8x8**:
-        - Guía la búsqueda hacia nodos prometedores
-        - Poda ramas que claramente no mejorarán la solución
-        - Reduce exponencialmente el espacio de búsqueda
+    3. Eficiencia en 8x8:
+        - Guia la busqueda hacia nodos prometedores
+        - Poda ramas que claramente no mejoraran la solucion
+        - Reduce exponencialmente el espacio de busqueda
 
-    4️⃣  **Admisibilidad de nuestras heurísticas**:
-        - ✅ Hamming: admisible (cada pieza mal necesita ≥1 mov)
-        - ✅ Manhattan: admisible (cada mov reduce distancia en ≤1)
-        - ✅ Linear Conflict: admisible (cada conflicto necesita ≥2 mov)
-        - ✅ Corner Penalty: admisible (penalización conservadora de 1-2)
+    4. Admisibilidad de nuestras heuristicas:
+        - Hamming: admisible (cada pieza mal necesita >=1 mov)
+        - Manhattan: admisible (cada mov reduce distancia en <=1)
+        - Linear Conflict: admisible (cada conflicto necesita >=2 mov)
+        - Corner Penalty: admisible (penalizacion conservadora de 1-2)
+        - Fila Distance: admisible (cada pieza fuera de su fila necesita >=1 mov)
 
-    Para 8x8, recomiendo usar **Manhattan** o **Corner Penalty** por su
-    excelente balance entre velocidad y precisión.
+    Para 8x8, recomiendo usar Manhattan o Corner Penalty por su
+    excelente balance entre velocidad y precision.
     """)
 
     print("\n" + "-" * 70)
@@ -499,17 +460,14 @@ def ejemplo_calculo_pregunta3():
     print("-" * 70)
 
 
-# ============================================================================
-# MAIN: Ejecutar el ejemplo de la Pregunta 3
-# ============================================================================
-
+# MAIN: Ejecutar el ejemplo
 if __name__ == "__main__":
     ejemplo_calculo_pregunta3()
 
     # Mostrar información de las heurísticas
     print("\n" + "=" * 70)
-    print("📋 RESUMEN DE HEURÍSTICAS DISPONIBLES")
+    print("RESUMEN DE HEURISTICAS DISPONIBLES")
     print("=" * 70)
     for key, (name, _, admissible, desc) in HEURISTICS.items():
-        adm = "✅ Admisible" if admissible else "❌ No admisible"
+        adm = "Admisible" if admissible else "No admisible"
         print(f"{key}. {name}: {desc} - {adm}")
